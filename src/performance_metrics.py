@@ -1,125 +1,131 @@
 import numpy as np
-from scipy.optimize import linear_sum_assignment
-from scipy.spatial import distance
 
-# 动态调整过程噪声
-def optimize_process_noise(self):
-    acceleration = np.linalg.norm(self.state[2:4] - self.previous_velocity) / self.time_interval
-    self.Q[:2, :2] *= 1 + 0.1 * acceleration  # 根据加速度动态调整位置噪声
-    self.previous_velocity = self.state[2:4]
 
-def dynamic_threshold(velocity, size, miss_count):
-    base_threshold = 20
-    speed_factor = np.linalg.norm(velocity) / 10
-    size_factor = size / 100
-    miss_penalty = miss_count * 5
-    return base_threshold + speed_factor + size_factor - miss_penalty
+class MetricsEvaluator:
+    def __init__(self, gt_data):
+        """
+        初始化性能评估器
+        :param gt_data: Ground Truth 数据
+        """
+        self.gt_data = gt_data
 
-def calculate_mahalanobis_distance(prediction, detection, covariance_matrix):
-    covariance_matrix_2d = covariance_matrix[:2, :2]
-    diff = prediction - detection
-    return distance.mahalanobis(diff, np.zeros_like(diff), np.linalg.inv(covariance_matrix_2d))
+    def calculate_precision_recall_f1(self, frame_metrics):
+        """
+        使用算法输出的 TP、FP、FN 计算 Precision、Recall、F1-Score
+        :param frame_metrics: 每帧的性能指标列表，包含 TP、FP、FN、ID Switch 等
+        :return: 帧序列、Precision、Recall、F1-score 列表
+        """
+        precision_list, recall_list, f1_list = [], [], []
+        frames = self.gt_data['frame'].unique()
 
-# 扩展卡尔曼滤波器类
-class ExtendedKalmanFilter:
-    def __init__(self, initial_state, time_interval=1):
-        self.state = initial_state
-        self.P = np.eye(4)
-        self.F = np.eye(4)
-        self.F[0, 2] = self.F[1, 3] = time_interval
-        self.Q = np.eye(4) * 0.01
-        self.R = np.eye(2) * 0.1
-        self.previous_velocity = np.zeros(2)
+        for frame, metrics in zip(frames, frame_metrics):
+            tp = metrics.get("TP", 0)
+            fp = metrics.get("FP", 0)
+            fn = metrics.get("FN", 0)
 
-    def predict(self):
-        self.optimize_process_noise()
-        self.state = np.dot(self.F, self.state)
-        self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
-        return self.state[:2]
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
-    def update(self, measurement):
-        H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]])
-        y = measurement - np.dot(H, self.state)
-        S = np.dot(H, np.dot(self.P, H.T)) + self.R
-        K = np.dot(np.dot(self.P, H.T), np.linalg.inv(S))
-        self.state += np.dot(K, y)
-        self.P = np.dot(np.eye(4) - np.dot(K, H), self.P)
+            precision_list.append(precision)
+            recall_list.append(recall)
+            f1_list.append(f1)
 
-# 目标信息类：封装目标的属性（位置、速度、大小、未匹配次数等）
-class TargetInfo:
-    def __init__(self, obj_id, initial_detection):
-        self.obj_id = obj_id
-        self.velocity = np.zeros(2)
-        self.size = initial_detection[2] * initial_detection[3]
-        self.reserve_counter = 0
-        self.previous_position = initial_detection[:2]
-        self.frame_count = 1
+        return frames, precision_list, recall_list, f1_list
 
-    def update_velocity(self, measurement, time_interval=1):
-        self.velocity = (measurement - self.previous_position) / (time_interval * self.frame_count)
-        self.previous_position = measurement
-        self.frame_count += 1
+    def calculate_mota_motp(self, tracked_results):
+        """
+        计算 MOTA 和 MOTP 性能指标
+        :param tracked_results: 跟踪结果列表 [(frame, id, x1, y1), ...]
+        :return: MOTA 和 MOTP 值
+        """
+        # 获取 Ground Truth 数据
+        gt_data = self.gt_data
+        total_frames = len(gt_data['frame'].unique())
 
-# 目标类：封装目标的EKF实例和目标信息
-class Target:
-    def __init__(self, obj_id, ekf, target_info):
-        self.obj_id = obj_id
-        self.ekf = ekf
-        self.target_info = target_info
+        # 计算 MOTA
+        mota = 0
+        total_tp, total_fp, total_fn, total_id_switches = 0, 0, 0, 0
 
-    def update(self, measurement):
-        self.ekf.update(measurement)
-        self.target_info.update_velocity(measurement)
+        # 计算每帧的指标
+        for frame in gt_data['frame'].unique():
+            frame_gt = gt_data[gt_data['frame'] == frame]
+            frame_results = [result for result in tracked_results if result[0] == frame]
 
-# 匹配器类：专门处理目标的匹配逻辑
-class TargetMatcher:
-    def __init__(self):
-        pass
+            tp, fp, fn, id_switches = self.calculate_frame_metrics(frame_gt, frame_results)
+            mota += tp / (tp + fp + fn + id_switches)  # MOTA公式
 
-    def match(self, predictions, current_detections):
-        distance_matrix = np.zeros((len(predictions), len(current_detections)))
-        pred_ids = list(predictions.keys())
-        for i, pid in enumerate(pred_ids):
-            for j, det in enumerate(current_detections):
-                covariance_matrix = predictions[pid].ekf.P
-                distance_matrix[i, j] = calculate_mahalanobis_distance(predictions[pid].ekf.state[:2], det[:2], covariance_matrix)
-        row_ind, col_ind = linear_sum_assignment(distance_matrix)
-        return [(pred_ids[row], col) for row, col in zip(row_ind, col_ind) if distance_matrix[row, col] < dynamic_threshold(predictions[pred_ids[row]].target_info.velocity, predictions[pred_ids[row]].target_info.size, predictions[pred_ids[row]].target_info.reserve_counter)]
+            total_tp += tp
+            total_fp += fp
+            total_fn += fn
+            total_id_switches += id_switches
 
-# 目标跟踪器类：管理目标的预测、匹配和删除等
-class ObjectTracker:
-    def __init__(self, reserve=3, hit=3):
-        self.tracked_objects = {}
-        self.tracked_objects_info = {}
-        self.reserve = reserve
-        self.hit = hit
-        self.matcher = TargetMatcher()
+        mota /= total_frames  # 平均 MOTA
 
-    def predict_targets(self):
-        return {obj_id: obj.ekf.predict() for obj_id, obj in self.tracked_objects.items()}
+        # 计算 MOTP
+        motp = 0
+        total_distance = 0
+        total_matches = 0
+        for frame in gt_data['frame'].unique():
+            frame_gt = gt_data[gt_data['frame'] == frame]
+            frame_results = [result for result in tracked_results if result[0] == frame]
 
-    def update_matched_targets(self, matches, current_detections):
-        for obj_id, det_index in matches:
-            measurement = current_detections[det_index][:2]
-            self.tracked_objects[obj_id].update(measurement)
+            for gt in frame_gt.itertuples():
+                matching_result = self.find_closest_match(gt, frame_results)
+                if matching_result:
+                    distance = np.linalg.norm([gt.x1 - matching_result[2], gt.y1 - matching_result[3]])
+                    total_distance += distance
+                    total_matches += 1
 
-    def handle_unmatched_targets(self, matches):
-        matched_ids = {match[0] for match in matches}
-        for obj_id in list(self.tracked_objects.keys()):
-            if obj_id not in matched_ids:
-                if obj_id not in self.tracked_objects_info:
-                    self.tracked_objects_info[obj_id] = TargetInfo(obj_id, None)
-                self.tracked_objects_info[obj_id].reserve_counter += 1
-                if self.tracked_objects_info[obj_id].reserve_counter >= self.reserve:
-                    del self.tracked_objects[obj_id]
-                    del self.tracked_objects_info[obj_id]
+        motp = total_distance / total_matches if total_matches > 0 else 0
 
-    def add_new_targets(self, current_detections, matches):
-        unmatched_detections = {i for i in range(len(current_detections))} - {m[1] for m in matches}
-        for det_index in unmatched_detections:
-            det = current_detections[det_index]
-            new_target_id = len(self.tracked_objects) + 1
-            ekf = ExtendedKalmanFilter(initial_state=np.array([det[0], det[1], 0, 0]))  # 初始假设目标静止
-            target_info = TargetInfo(new_target_id, det)
-            new_target = Target(new_target_id, ekf, target_info)
-            self.tracked_objects[new_target_id] = new_target
+        return mota, motp
+
+    def calculate_frame_metrics(self, frame_gt, frame_results):
+        """
+        计算单帧的 TP、FP、FN 和 ID Switches
+        :param frame_gt: Ground Truth 数据
+        :param frame_results: 预测结果
+        :return: TP、FP、FN、ID Switches
+        """
+        tp, fp, fn, id_switches = 0, 0, 0, 0
+        matched_ids = set()
+
+        # 计算 TP 和 FP
+        for result in frame_results:
+            matched_gt = self.find_matching_gt(result, frame_gt)
+            if matched_gt:
+                tp += 1
+                matched_ids.add(matched_gt.id)
+            else:
+                fp += 1
+
+        # 计算 FN
+        fn = len(frame_gt) - len(matched_ids)
+
+        # 计算 ID Switches
+        id_switches = self.calculate_id_switches(frame_results, frame_gt)
+
+        return tp, fp, fn, id_switches
+
+    def find_matching_gt(self, result, frame_gt):
+        """
+        寻找与预测结果匹配的 GT（根据距离等规则）
+        :param result: 预测结果 (frame, id, x1, y1)
+        :param frame_gt: Ground Truth 数据
+        :return: 匹配的 GT 行，若没有匹配返回 None
+        """
+        for gt in frame_gt.itertuples():
+            if np.linalg.norm([result[2] - gt.x1, result[3] - gt.y1]) < 50:  # 假设匹配的阈值为 50
+                return gt
+        return None
+
+    def calculate_id_switches(self, frame_results, frame_gt):
+        """
+        计算 ID Switches（目标身份的切换）
+        :param frame_results: 预测结果列表
+        :param frame_gt: Ground Truth 数据
+        :return: ID Switches 数量
+        """
+        # 实际情况可能需要跟踪每个目标的状态和历史轨迹来判断 ID Switches
+        return 0  # 这里是一个简化示例，实际上需要根据 ID 变化来计算
