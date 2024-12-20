@@ -15,12 +15,14 @@ def dynamic_threshold(velocity, size, miss_count):
     miss_penalty = miss_count * 5
     return base_threshold + speed_factor + size_factor - miss_penalty
 
+# 马氏距离计算, 用于匹配距离计算
 def calculate_mahalanobis_distance(prediction, detection, covariance_matrix):
+    # 提取与 [x, y] 相关的 2x2 协方差子矩阵
     covariance_matrix_2d = covariance_matrix[:2, :2]
     diff = prediction - detection
     return distance.mahalanobis(diff, np.zeros_like(diff), np.linalg.inv(covariance_matrix_2d))
 
-# 扩展卡尔曼滤波器类
+# 扩展卡尔曼滤波器类,用于每个目标的预测与更新
 class ExtendedKalmanFilter:
     def __init__(self, initial_state, time_interval=1):
         self.state = initial_state
@@ -79,6 +81,8 @@ class TargetMatcher:
     def match(self, predictions, current_detections):
         distance_matrix = np.zeros((len(predictions), len(current_detections)))
         pred_ids = list(predictions.keys())
+        print(f"Predictions: {len(predictions)}")
+        print(f"Current detections: {len(current_detections)}")
         for i, pid in enumerate(pred_ids):
             for j, det in enumerate(current_detections):
                 covariance_matrix = predictions[pid].ekf.P

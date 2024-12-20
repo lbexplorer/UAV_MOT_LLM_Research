@@ -33,7 +33,7 @@ class MetricsEvaluator:
 
         return frames, precision_list, recall_list, f1_list
 
-    def calculate_mota_motp(self, tracked_results):
+    def calculate_git (self, tracked_results):
         """
         计算 MOTA 和 MOTP 性能指标
         :param tracked_results: 跟踪结果列表 [(frame, id, x1, y1), ...]
