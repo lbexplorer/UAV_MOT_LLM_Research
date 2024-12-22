@@ -2,11 +2,8 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial import distance
 
-# 动态调整过程噪声
-def optimize_process_noise(self):
-    acceleration = np.linalg.norm(self.state[2:4] - self.previous_velocity) / self.time_interval
-    self.Q[:2, :2] *= 1 + 0.1 * acceleration  # 根据加速度动态调整位置噪声
-    self.previous_velocity = self.state[2:4]
+from src.performance_metrics import MetricsEvaluator
+
 
 def dynamic_threshold(velocity, size, miss_count):
     base_threshold = 20
@@ -25,13 +22,14 @@ def calculate_mahalanobis_distance(prediction, detection, covariance_matrix):
 # 扩展卡尔曼滤波器类,用于每个目标的预测与更新
 class ExtendedKalmanFilter:
     def __init__(self, initial_state, time_interval=1):
-        self.state = initial_state
+        self.state = np.array(initial_state, dtype=np.float64)
         self.P = np.eye(4)
         self.F = np.eye(4)
         self.F[0, 2] = self.F[1, 3] = time_interval
         self.Q = np.eye(4) * 0.01
         self.R = np.eye(2) * 0.1
         self.previous_velocity = np.zeros(2)
+        self.time_interval = time_interval
 
     def predict(self):
         self.optimize_process_noise()
@@ -40,12 +38,19 @@ class ExtendedKalmanFilter:
         return self.state[:2]
 
     def update(self, measurement):
+        measurement = np.array(measurement, dtype=np.float64)
         H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]])
         y = measurement - np.dot(H, self.state)
         S = np.dot(H, np.dot(self.P, H.T)) + self.R
         K = np.dot(np.dot(self.P, H.T), np.linalg.inv(S))
         self.state += np.dot(K, y)
         self.P = np.dot(np.eye(4) - np.dot(K, H), self.P)
+
+    def optimize_process_noise(self):
+        # 实现过程噪声优化
+        acceleration = np.linalg.norm(self.state[2:4] - self.previous_velocity) / self.time_interval
+        self.Q[:2, :2] *= 1 + 0.1 * acceleration  # 根据加速度动态调整位置噪声
+        self.previous_velocity = self.state[2:4]
 
 # 目标信息类：封装目标的属性（位置、速度、大小、未匹配次数等）
 class TargetInfo:
@@ -100,7 +105,7 @@ class ObjectTracker:
         self.matcher = TargetMatcher()
 
     def predict_targets(self):
-        return {obj_id: obj.ekf.predict() for obj_id, obj in self.tracked_objects.items()}
+        return {obj_id: obj for obj_id, obj in self.tracked_objects.items()}
 
     def update_matched_targets(self, matches, current_detections):
         for obj_id, det_index in matches:
@@ -127,3 +132,87 @@ class ObjectTracker:
             target_info = TargetInfo(new_target_id, det)
             new_target = Target(new_target_id, ekf, target_info)
             self.tracked_objects[new_target_id] = new_target
+
+# 运行目标追踪
+
+import numpy as np
+
+
+def run_tracking_objects(gt_data):
+    """
+    运行目标跟踪算法并计算每一帧的性能指标
+    :param gt_data: Ground Truth 数据 (DataFrame)
+    :return: 包含每一帧的性能指标的字典，计算出的 MOTA 和 MOTP
+    """
+    # 初始化性能评估器
+    evaluator = MetricsEvaluator(gt_data)
+
+    # 存储每一帧的指标数据
+    frame_metrics = []
+    tracked_results = []  # 跟踪结果 [(frame, id, x1, y1, w, h), ...]
+
+    # 创建目标跟踪器实例
+    object_tracker = ObjectTracker(reserve=3, hit=3)
+
+    # 获取每一帧的 Ground Truth 数据
+    frames = gt_data['frame'].unique()
+
+    # 遍历每一帧
+    for frame in frames:
+        # 获取当前帧的 Ground Truth 数据
+        frame_gt = gt_data[gt_data['frame'] == frame]
+        current_detections = frame_gt[['x1', 'y1', 'w', 'h']].values
+
+        # 如果是第一帧，初始化目标
+        if frame == frames[0]:
+            for det in current_detections:
+                ekf = ExtendedKalmanFilter(initial_state=np.array([det[0], det[1], 0, 0]))  # 假设目标静止
+                target_info = TargetInfo(len(tracked_results) + 1, det)
+                target = Target(len(tracked_results) + 1, ekf, target_info)
+                object_tracker.tracked_objects[target.obj_id] = target
+
+        # 预测当前帧的目标位置
+        predictions = object_tracker.predict_targets()
+
+        # 使用匈牙利算法匹配当前帧的目标与预测
+        matches = object_tracker.matcher.match(predictions, current_detections)
+
+        # 更新已匹配的目标
+        object_tracker.update_matched_targets(matches, current_detections)
+
+        # 处理未匹配的目标
+        object_tracker.handle_unmatched_targets(matches)
+
+        # 添加新的目标
+        object_tracker.add_new_targets(current_detections, matches)
+
+        # 收集当前帧的跟踪结果
+        tracked_results.extend([(frame, obj_id, *current_detections[match[1]]) for obj_id, match in matches])
+
+        # 计算每一帧的 TP、FP、FN、ID Switches
+        tp, fp, fn, id_switches = evaluator.calculate_frame_metrics(frame_gt, tracked_results)
+
+        # 将当前帧的指标存储在字典中
+        frame_metrics.append({
+            'frame': frame,
+            'TP': tp,
+            'FP': fp,
+            'FN': fn,
+            'ID Switches': id_switches
+        })
+
+    # 计算 Precision、Recall、F1-Score
+    frames, precision_list, recall_list, f1_list = evaluator.calculate_precision_recall_f1(frame_metrics)
+
+    # 计算 MOTA 和 MOTP
+    mota, motp = evaluator.calculate_git(tracked_results)
+
+    # 返回每一帧的性能指标以及全局的 MOTA 和 MOTP
+    return {
+        'frames': frames,
+        'precision': precision_list,
+        'recall': recall_list,
+        'f1': f1_list,
+        'mota': mota,
+        'motp': motp
+    }

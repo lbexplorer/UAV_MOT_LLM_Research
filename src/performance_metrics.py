@@ -1,4 +1,7 @@
 import numpy as np
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 class MetricsEvaluator:
@@ -129,3 +132,40 @@ class MetricsEvaluator:
         """
         # 实际情况可能需要跟踪每个目标的状态和历史轨迹来判断 ID Switches
         return 0  # 这里是一个简化示例，实际上需要根据 ID 变化来计算
+
+# 可视化性能指标
+def plot_metrics(frames, precision, recall, f1):
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(frames, precision, label='Precision', marker='o', color='blue')
+    plt.plot(frames, recall, label='Recall', marker='o', color='green')
+    plt.plot(frames, f1, label='F1-score', marker='o', color='red')
+
+    plt.title('Evaluation Metrics Over Frames')
+    plt.xlabel('Frame Number')
+    plt.ylabel('Score')
+    plt.xticks(frames[::50])  # 每隔50帧显示一个标签
+    plt.ylim(0, 1)
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+def plot_mota_motp(frames, mota, motp):
+    """
+    绘制 MOTA 和 MOTP 的折线图
+    :param frames: 帧序列
+    :param mota: MOTA 数据
+    :param motp: MOTP 数据
+    """
+    plt.figure(figsize=(12, 6))
+    plt.plot(frames, mota, label='MOTA', marker='o', color='blue')
+    plt.plot(frames, motp, label='MOTP', marker='o', color='green')
+
+    plt.title('MOTA and MOTP Over Frames')
+    plt.xlabel('Frame Number')
+    plt.ylabel('Score')
+    plt.xticks(frames[::50])  # 每隔50帧显示一个标签
+    plt.ylim(0, 1)
+    plt.legend()
+    plt.grid()
+    plt.show()
