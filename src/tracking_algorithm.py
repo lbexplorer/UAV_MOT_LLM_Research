@@ -2,138 +2,242 @@ import logging
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial import distance
-from src.performance_metrics import MetricsEvaluator
 
-# 配置日志记录器，日志级别设置为INFO，以便输出关键信息
-logging.basicConfig(level=logging.INFO,  # 设置日志级别为INFO
+# 配置日志记录器
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[logging.StreamHandler()])
 
-# 动态阈值函数，根据目标的速度、大小和丢失次数动态调整匹配的阈值
+
+# 动态阈值函数（优化版）
 def dynamic_threshold(velocity, size, miss_count):
-    base_threshold = 20  # 基础阈值
-    speed_factor = np.linalg.norm(velocity) / 10  # 根据速度调整阈值
-    size_factor = size / 100  # 根据目标大小调整阈值
-    miss_penalty = miss_count * 5  # 根据丢失次数调整阈值
-    return base_threshold + speed_factor + size_factor - miss_penalty
+    base_threshold = 25  # 提高基础阈值
+    speed_factor = np.linalg.norm(velocity) * 0.5  # 调整速度系数
+    size_factor = size * 0.2  # 调整大小系数
+    miss_penalty = miss_count * 3  # 降低丢失惩罚
+    return max(base_threshold + speed_factor + size_factor - miss_penalty, 10)  # 设置最小阈值
 
-# 计算马氏距离，用于测量预测和检测之间的相似度
+
+# 马氏距离计算（保持不变）
 def calculate_mahalanobis_distance(prediction, detection, covariance_matrix):
-    covariance_matrix_2d = covariance_matrix[:2, :2]  # 仅使用前两列和前两行（位置）
-    diff = prediction[:2] - detection[:2]  # 计算位置的差异
-    inv_cov = np.linalg.inv(covariance_matrix_2d)  # 计算协方差矩阵的逆
-    return distance.mahalanobis(diff, np.zeros_like(diff), inv_cov)  # 返回马氏距离
+    covariance_matrix_2d = covariance_matrix[:2, :2]
+    diff = prediction[:2] - detection[:2]
+    inv_cov = np.linalg.inv(covariance_matrix_2d)
+    return distance.mahalanobis(diff, np.zeros_like(diff), inv_cov)
 
-# 扩展卡尔曼滤波器类，用于目标状态预测和更新
+
+# 扩展卡尔曼滤波器（保持不变）
 class ExtendedKalmanFilter:
     def __init__(self, initial_state, time_interval=1):
-        self.state = np.array(initial_state, dtype=np.float64)  # 目标的初始状态
-        self.P = np.eye(4)  # 初始协方差矩阵
-        self.F = np.eye(4)  # 状态转移矩阵
-        self.F[0, 2] = self.F[1, 3] = time_interval  # 根据时间间隔调整矩阵
-        self.Q = np.eye(4) * 0.01  # 过程噪声矩阵
-        self.R = np.eye(2) * 0.1  # 测量噪声矩阵
-        self.previous_velocity = np.zeros(2)  # 初始速度为零
-        self.time_interval = time_interval  # 时间间隔
+        self.state = np.array(initial_state, dtype=np.float64)
+        self.P = np.eye(4)
+        self.F = np.eye(4)
+        self.F[0, 2] = self.F[1, 3] = time_interval
+        self.Q = np.eye(4) * 0.01
+        self.R = np.eye(2) * 0.1
+        self.previous_velocity = np.zeros(2)
+        self.time_interval = time_interval
 
-    # 预测目标的下一位置
     def predict(self):
-        self.optimize_process_noise()  # 优化过程噪声
-        self.state = np.dot(self.F, self.state)  # 状态预测
-        self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q  # 协方差预测
-        return self.state[:2]  # 返回预测的前两维（位置）
+        self.optimize_process_noise()
+        self.state = np.dot(self.F, self.state)
+        self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
+        return self.state[:2]
 
-    # 更新卡尔曼滤波器的状态
     def update(self, measurement):
-        measurement = np.array(measurement, dtype=np.float64)  # 将测量值转换为numpy数组
-        H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]])  # 测量矩阵
-        y = measurement - np.dot(H, self.state)  # 计算残差
-        S = np.dot(H, np.dot(self.P, H.T)) + self.R  # 计算残差的协方差
-        K = np.dot(np.dot(self.P, H.T), np.linalg.inv(S))  # 计算卡尔曼增益
-        self.state += np.dot(K, y)  # 更新状态
-        self.P = np.dot(np.eye(4) - np.dot(K, H), self.P)  # 更新协方差矩阵
+        measurement = np.array(measurement, dtype=np.float64)
+        H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]])
+        y = measurement - np.dot(H, self.state)
+        S = np.dot(H, np.dot(self.P, H.T)) + self.R
+        K = np.dot(np.dot(self.P, H.T), np.linalg.inv(S))
+        self.state += np.dot(K, y)
+        self.P = np.dot(np.eye(4) - np.dot(K, H), self.P)
 
-    # 根据目标的加速度优化过程噪声
     def optimize_process_noise(self):
-        acceleration = np.linalg.norm(self.state[2:4] - self.previous_velocity) / self.time_interval  # 计算加速度
-        self.Q[:2, :2] *= 1 + 0.1 * acceleration  # 根据加速度调整过程噪声
-        self.previous_velocity = self.state[2:4]  # 更新速度
+        acceleration = np.linalg.norm(self.state[2:4] - self.previous_velocity) / self.time_interval
+        self.Q[:2, :2] *= 1 + 0.1 * acceleration
+        self.previous_velocity = self.state[2:4]
 
-# 目标类，用于存储每个目标的信息
+
+# 目标类（增加状态字段）
 class Target:
     def __init__(self, obj_id, ekf):
-        self.obj_id = obj_id  # 目标ID
-        self.ekf = ekf  # 扩展卡尔曼滤波器对象
-        self.miss_count = 0  # 丢失计数
+        self.obj_id = obj_id
+        self.ekf = ekf
+        self.miss_count = 0
+        self.status = "confirmed"  # 新增状态标识
 
-# 目标匹配器类，用于根据卡尔曼滤波器的预测结果进行目标匹配
+
+# 新增候选目标类
+class PendingTarget:
+    def __init__(self, detection):
+        self.ekf = ExtendedKalmanFilter([detection[0], detection[1], 0, 0])
+        self.hit_count = 1
+        self.last_seen = 0  # 最后出现帧数
+        self.status = "pending"
+
+
+# 目标匹配器（优化匹配逻辑）
 class TargetMatcher:
-    def match(self, predictions, current_detections):
-        distance_matrix = np.zeros((len(predictions), len(current_detections)))  # 创建距离矩阵
-        pred_ids = list(predictions.keys())  # 获取预测目标的ID
-        # 计算所有预测目标和当前检测目标之间的马氏距离
+    def match(self, predictions, detections, threshold_func):
+        distance_matrix = np.zeros((len(predictions), len(detections)))
+        pred_ids = list(predictions.keys())
+
         for i, pid in enumerate(pred_ids):
-            for j, det in enumerate(current_detections):
-                covariance_matrix = predictions[pid].ekf.P  # 获取预测目标的协方差矩阵
-                distance_matrix[i, j] = calculate_mahalanobis_distance(
-                    predictions[pid].ekf.state[:2], det[:2], covariance_matrix
+            obj = predictions[pid]
+            for j, det in enumerate(detections):
+                covariance = obj.ekf.P
+                dist = calculate_mahalanobis_distance(
+                    obj.ekf.state[:2], det[:2], covariance)
+                # 应用动态阈值
+                threshold = threshold_func(
+                    obj.ekf.state[2:4],  # 速度
+                    np.linalg.norm(det[2:4]),  # 检测目标大小
+                    obj.miss_count
                 )
-        row_ind, col_ind = linear_sum_assignment(distance_matrix)  # 使用匈牙利算法进行匹配
-        matches = [(pred_ids[row], col) for row, col in zip(row_ind, col_ind)]  # 返回匹配的目标ID
-        return matches
+                distance_matrix[i, j] = dist if dist < threshold else 1e6  # 超出阈值的设为极大值
 
-# 目标追踪器类，用于管理目标的跟踪状态和更新
+        row_ind, col_ind = linear_sum_assignment(distance_matrix)
+        valid_matches = []
+        for r, c in zip(row_ind, col_ind):
+            if distance_matrix[r, c] < 1e6:
+                valid_matches.append((pred_ids[r], c))
+        return valid_matches
+
+
+# 改进后的目标追踪器
 class ObjectTracker:
-    def __init__(self, reserve=3):
-        self.tracked_objects = {}  # 存储跟踪目标的字典
-        self.reserve = reserve  # 丢失目标的最大容忍次数
-        self.matcher = TargetMatcher()  # 目标匹配器实例
+    def __init__(self, reserve=3, confirm_frames=3):
+        self.tracked_objects = {}  # 已确认目标
+        self.pending_targets = []  # 候选目标
+        self.reserve = reserve  # 最大保留帧数
+        self.confirm_frames = confirm_frames  # 确认所需帧数
+        self.next_id = 1  # ID分配计数器
+        self.matcher = TargetMatcher()
+        self.frame_count = 0  # 总帧数计数器
 
-    # 获取所有有效的预测目标（丢失次数小于reserve的目标）
     def predict_targets(self):
-        return {obj_id: obj for obj_id, obj in self.tracked_objects.items() if obj.miss_count < self.reserve}
+        # 预测所有已确认目标
+        for obj in self.tracked_objects.values():
+            obj.ekf.predict()
+        return self.tracked_objects
 
-    # 根据匹配结果更新目标的状态
     def update_targets(self, matches, current_detections):
+        # 更新匹配成功的已确认目标
         for obj_id, det_index in matches:
-            detection = current_detections[det_index]  # 获取当前检测目标
-            self.tracked_objects[obj_id].ekf.update(detection[:2])  # 使用卡尔曼滤波器更新目标状态
+            detection = current_detections[det_index]
+            self.tracked_objects[obj_id].ekf.update(detection[:2])
+            self.tracked_objects[obj_id].miss_count = 0  # 重置丢失计数器
 
-    # 为未匹配到的检测目标添加新的目标
-    def add_new_targets(self, unmatched_detections):
-        for det in unmatched_detections:
-            obj_id = len(self.tracked_objects) + 1  # 新目标的ID
-            ekf = ExtendedKalmanFilter(initial_state=[det[0], det[1], 0, 0])  # 创建新的EKF实例
-            self.tracked_objects[obj_id] = Target(obj_id, ekf)  # 添加新的目标
+    def process_pending_targets(self, unmatched_detections):
+        # 预测候选目标
+        for pt in self.pending_targets:
+            pt.ekf.predict()
 
-    # 移除丢失次数超过阈值的目标
+        # 构建候选目标匹配矩阵
+        distance_matrix = np.zeros((len(self.pending_targets), len(unmatched_detections)))
+        for i, pt in enumerate(self.pending_targets):
+            for j, det in enumerate(unmatched_detections):
+                covariance = pt.ekf.P
+                distance_matrix[i, j] = calculate_mahalanobis_distance(
+                    pt.ekf.state[:2], det[:2], covariance)
+
+        # 执行匹配
+        row_ind, col_ind = linear_sum_assignment(distance_matrix)
+        matched_pending = set()
+        matched_detections = set()
+
+        # 处理有效匹配
+        for r, c in zip(row_ind, col_ind):
+            if distance_matrix[r, c] < dynamic_threshold([0, 0], 0, 0):  # 使用基础阈值
+                pt = self.pending_targets[r]
+                pt.ekf.update(unmatched_detections[c][:2])
+                pt.hit_count += 1
+                pt.last_seen = self.frame_count
+                matched_pending.add(r)
+                matched_detections.add(c)
+
+        # 更新未匹配的候选目标
+        new_pending = []
+        for i, pt in enumerate(self.pending_targets):
+            if i in matched_pending:
+                continue
+            if self.frame_count - pt.last_seen <= self.reserve:
+                new_pending.append(pt)
+        self.pending_targets = new_pending
+
+        # 添加新候选目标
+        for j, det in enumerate(unmatched_detections):
+            if j not in matched_detections:
+                new_pt = PendingTarget(det)
+                new_pt.last_seen = self.frame_count
+                self.pending_targets.append(new_pt)
+
+        # 确认稳定目标
+        confirmed = []
+        for pt in self.pending_targets:
+            if pt.hit_count >= self.confirm_frames:
+                confirmed.append(pt)
+
+        # 分配正式ID
+        for pt in confirmed:
+            new_id = self.next_id
+            self.tracked_objects[new_id] = Target(new_id, pt.ekf)
+            self.pending_targets.remove(pt)
+            self.next_id += 1
+
     def remove_lost_targets(self):
-        to_remove = []  # 待移除的目标列表
+        # 移除丢失的已确认目标
+        to_remove = []
         for obj_id, obj in self.tracked_objects.items():
-            if obj.miss_count >= self.reserve:  # 丢失次数达到最大值，移除目标
+            if obj.miss_count >= self.reserve:
                 to_remove.append(obj_id)
             else:
-                obj.miss_count += 1  # 未匹配到时，丢失计数加1
+                obj.miss_count += 1
         for obj_id in to_remove:
-            del self.tracked_objects[obj_id]  # 移除目标
+            del self.tracked_objects[obj_id]
 
-# 运行目标追踪的主函数
-def run_tracking_objects(detections_list):
-    tracker = ObjectTracker()  # 创建目标追踪器实例
-    evaluator = MetricsEvaluator()  # 创建性能评估器实例
+    def update_frame(self, detections):
+        self.frame_count += 1
 
-    # 遍历每一帧的检测结果
-    for frame, detections in enumerate(detections_list):
-        predictions = tracker.predict_targets()  # 获取当前的预测目标
-        matches = tracker.matcher.match(predictions, detections)  # 匹配目标
-        tracker.update_targets(matches, detections)  # 更新目标状态
+        # 主匹配流程
+        predictions = self.predict_targets()
+        matches = self.matcher.match(predictions, detections, dynamic_threshold)
+        self.update_targets(matches, detections)
 
-        # 获取未匹配的检测目标
-        unmatched_detections = [det for i, det in enumerate(detections) if i not in [match[1] for match in matches]]
-        tracker.add_new_targets(unmatched_detections)  # 添加新的目标
-        tracker.remove_lost_targets()  # 移除丢失目标
+        # 分离未匹配检测
+        matched_det_indices = {m[1] for m in matches}
+        unmatched_detections = [d for i, d in enumerate(detections) if i not in matched_det_indices]
 
-        # 更新当前帧的性能指标
-        frame_metrics = evaluator.update_frame(predictions, detections)
-        print(f"Tracked Results for Frame {frame}: {matches}")  # 输出匹配结果
-        print(f"Performance Metrics for Frame {frame}: {frame_metrics}")  # 输出性能指标
+        # 处理候选目标
+        self.process_pending_targets(unmatched_detections)
+
+        # 清理丢失目标
+        self.remove_lost_targets()
+
+        # 返回当前追踪状态
+        return {
+            "confirmed": [(k, v.ekf.state[:2]) for k, v in self.tracked_objects.items()],
+            "pending": [(pt.ekf.state[:2], pt.hit_count) for pt in self.pending_targets]
+        }
+
+
+# 示例使用
+if __name__ == "__main__":
+    # 模拟检测数据（每帧的检测列表）
+    sample_detections = [
+        [[100, 100, 20, 20]],  # 第0帧
+        [[102, 98, 20, 20]],  # 第1帧
+        [[105, 95, 20, 20]],  # 第2帧
+        [],  # 第3帧（目标消失）
+        [[108, 92, 20, 20]],  # 第4帧
+        [[110, 90, 20, 20]],  # 第5帧
+    ]
+
+    tracker = ObjectTracker(reserve=3, confirm_frames=3)
+
+    for frame, detections in enumerate(sample_detections):
+        state = tracker.update_frame(detections)
+        print(f"\nFrame {frame} Tracking Results:")
+        print(f"Confirmed Targets: {state['confirmed']}")
+        print(f"Pending Targets: {state['pending']}")

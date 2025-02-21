@@ -2,14 +2,12 @@ import pandas as pd
 import logging
 
 from src.performance_metrics import plot_metrics, plot_mota_motp
+from src.tracking_algorithm import run_tracking_objects
 
 # 配置日志记录器
 logging.basicConfig(level=logging.INFO,  # 设置日志级别
                     format='%(asctime)s - %(levelname)s - %(message)s',  # 设置日志格式
                     handlers=[logging.StreamHandler()])  # 默认输出到控制台
-
-
-from src.tracking_algorithm import run_tracking_objects
 
 
 def load_gt_data(gt_file):
@@ -45,3 +43,5 @@ def main(gt_file):
 if __name__ == "__main__":
     gt_file = r"E:\python\MOT\UAV_MOT_LLM_Research\data\MOT17-02-FRCNN\gt\gt2.txt"
     main(gt_file)
+
+# 运行目标追踪的主函数
