@@ -1,47 +1,58 @@
-import pandas as pd
 import logging
+import motmetrics as mm
 
-from src.performance_metrics import plot_metrics, plot_mota_motp
-from src.tracking_algorithm import run_tracking_objects
-
-# 配置日志记录器
-logging.basicConfig(level=logging.INFO,  # 设置日志级别
-                    format='%(asctime)s - %(levelname)s - %(message)s',  # 设置日志格式
-                    handlers=[logging.StreamHandler()])  # 默认输出到控制台
+from src.performance_metrics import MOTEvaluator
+from src.tracking_algorithm import ObjectTracker
 
 
-def load_gt_data(gt_file):
-    # 读取 CSV 文件
-    gt_data_df = pd.read_csv(gt_file, sep=',', header=None,
-                             names=['frame', 'id', 'x1', 'y1', 'w', 'h', 'confidence', 'class', 'visibility'])
+def main(gt_path, output_dir='results'):
+    """
+    主函数模块，用于运行目标追踪系统并评估性能。
+    :param gt_path: ground truth文件路径
+    :param output_dir: 输出目录
+    """
+    # 初始化模块
+    loader = MOTLoader()
+    tracker = ObjectTracker()
+    evaluator = MOTEvaluator()
 
-    # 将 DataFrame 转换为字典列表
-    gt_data = gt_data_df.to_dict(orient='records')
+    # 加载数据
+    gt_data = loader.load_gt(gt_path)
+    total_frames = max(gt_data.keys())
 
-    return gt_data
-def main(gt_file):
-    gt_data = load_gt_data(gt_file)
-    print(gt_data)
-    # 目标跟踪
-    tracked_results =  run_tracking_objects(gt_data)
+    # 处理每帧数据
+    for frame in range(1, total_frames + 1):
+        # 获取当前帧数据
+        current_gt = gt_data.get(frame, [])
+        detections = loader.convert_to_detections(current_gt)
 
-    # 4. 提取性能指标数据
-    frames = tracked_results['frames']
-    precision = tracked_results['precision']
-    recall = tracked_results['recall']
-    f1 = tracked_results['f1']
-    mota = tracked_results['mota']
-    motp = tracked_results['motp']
+        # 运行跟踪算法
+        track_result = tracker.update_frame(detections)
+        track_boxes = [(tid, state) for tid, state in track_result['confirmed']]
 
-    # 5. 绘制 Precision, Recall, F1-score 的折线图
-    plot_metrics(frames, precision, recall, f1)
+        # 更新评估器
+        evaluator.update(frame, current_gt, track_boxes)
 
-    # 6. 绘制 MOTA 和 MOTP 的折线图
-    plot_mota_motp(frames, mota, motp)
+        # 日志输出
+        if frame % 50 == 0:
+            logging.info(f"Processed frame {frame}/{total_frames}")
+
+    # 生成评估结果
+    evaluator.visualize_results(output_dir)
+
+    # 保存最终结果
+    final_metrics = evaluator.get_metrics()
+    logging.info("\nFinal Evaluation Metrics:")
+    print(mm.io.render_summary(
+        final_metrics,
+        formatters=evaluator.metrics.formatters,
+        namemap=mm.io.motchallenge_metric_names
+    ))
+
+    return final_metrics
 
 
 if __name__ == "__main__":
-    gt_file = r"E:\python\MOT\UAV_MOT_LLM_Research\data\MOT17-02-FRCNN\gt\gt2.txt"
-    main(gt_file)
-
-# 运行目标追踪的主函数
+    # 使用示例
+    gt_path = 'path/to/MOT17/gt/gt.txt'  # 修改为实际路径
+    main(gt_path)

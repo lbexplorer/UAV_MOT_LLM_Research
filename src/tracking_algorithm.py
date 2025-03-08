@@ -96,7 +96,7 @@ class TargetMatcher:
                     obj.miss_count
                 )
                 distance_matrix[i, j] = dist if dist < threshold else 1e6  # 超出阈值的设为极大值
-
+        # 使用匈牙利算法匹配
         row_ind, col_ind = linear_sum_assignment(distance_matrix)
         valid_matches = []
         for r, c in zip(row_ind, col_ind):
