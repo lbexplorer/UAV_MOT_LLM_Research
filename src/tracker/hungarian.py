@@ -9,11 +9,11 @@ from typing import List, Tuple, Dict
 class HungarianTracker:
     """基于匈牙利算法的多目标跟踪器（支持IOU匹配）"""
 
-    def __init__(self, iou_threshold: float = 0.5, max_unmatched: int = 5):
+    def __init__(self, iou_threshold: float = 0.5, max_unmatched: int = 3):
         """
         初始化跟踪器
         :param iou_threshold: IOU匹配阈值，默认0.5
-        :param max_unmatched: 目标最大失配帧数，默认5
+        :param max_unmatched: 目标最大失配帧数，默认3
         """
         self.tracks: Dict[int, dict] = {}  # 跟踪目标字典 {track_id: {'bbox': bbox, 'unmatched': count}}
         self.next_id = 1  # ID分配计数器

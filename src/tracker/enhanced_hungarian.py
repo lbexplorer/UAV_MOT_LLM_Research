@@ -32,7 +32,7 @@ class PendingTarget:
 class EnhancedHungarianTracker:
     """综合优化的多目标跟踪器"""
 
-    def __init__(self, base_threshold=0.5, confirm_frames=3, reserve_frames=5):
+    def __init__(self, base_threshold=0.5, confirm_frames=3, reserve_frames=3):
         """
         :param base_threshold: 基础IOU匹配阈值
         :param confirm_frames: 候选目标确认所需帧数
@@ -82,6 +82,18 @@ class EnhancedHungarianTracker:
         return 1 - iou
 
     def update(self, detections: List[Tuple]) -> Dict:
+        # ================== 新增代码：处理初始帧 ==================
+        if not self.is_initialized:
+            self.is_initialized = True
+            # 初始帧直接分配所有检测目标为已确认目标
+            if len(detections) > 0:
+                for det in detections:
+                    self.confirmed_targets[self.next_id] = Target(self.next_id, det)
+                    self.next_id += 1
+            return {
+                "confirmed": [(k, v.bbox) for k, v in self.confirmed_targets.items()],
+                "pending": []
+            }
         """主更新流程"""
         # 步骤1：预测已确认目标
         for target in self.confirmed_targets.values():
@@ -90,6 +102,7 @@ class EnhancedHungarianTracker:
 
         # 步骤2：匈牙利匹配
         cost_matrix = self._iou_cost_matrix(list(self.confirmed_targets.values()), detections)
+        print(f"cost_matrix:{cost_matrix}")
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
         # 动态阈值筛选
@@ -100,8 +113,10 @@ class EnhancedHungarianTracker:
             threshold = self.dynamic_threshold(target.ekf.state[2:4],
                                                (target.bbox[2] - target.bbox[0]) * (target.bbox[3] - target.bbox[1]),
                                                target.miss_count)
+            print(f"Matching target {target.obj_id} (IOU: {iou:.2f}) with detection {c} (Threshold: {threshold:.2f})")
             if iou >= threshold:
                 valid_matches.append((r, c))
+        print(f"Valid matches after thresholding: {valid_matches}")
 
         # 步骤3：更新匹配目标
         matched_tracks = set()
@@ -112,6 +127,7 @@ class EnhancedHungarianTracker:
             measurement = np.array(detections[c][:2], dtype=np.float64).reshape(2, 1)
             self.confirmed_targets[target_id].ekf.update(measurement)
             self.confirmed_targets[target_id].miss_count = 0
+            print(f"Updated target {target_id}: new bbox {self.confirmed_targets[target_id].bbox}")
             matched_tracks.add(r)
             matched_dets.add(c)
 
@@ -120,6 +136,7 @@ class EnhancedHungarianTracker:
             if idx not in matched_tracks:
                 target.miss_count += 1
                 if target.miss_count > self.reserve_frames:
+                    print(f"Target {target.obj_id} lost and removed after {target.miss_count} misses.")
                     del self.confirmed_targets[target.obj_id]
 
         # 步骤5：处理未匹配的检测（新目标或候选目标）
@@ -137,10 +154,12 @@ class EnhancedHungarianTracker:
                     pt.hit_count += 1
                     pt.last_seen = 0
                     matched = True
+                    print(f"Matched pending target: {pt.bbox} with detection {det}")
                     break
             if not matched:
                 # 新增候选目标
                 self.pending_targets.append(PendingTarget(det))
+                print(f"Added new pending target: {det}")
 
         # 步骤6：更新候选目标状态
         new_pending = []
