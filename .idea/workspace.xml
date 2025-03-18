@@ -5,15 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fe22f1e4-09df-4606-88a9-e1fcedf13f45" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/data_loader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/eval/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/eval/metrics.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/tracker/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/tracker/hungarian.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/demo_tracking.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/tracker/enhanced_hungarian.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/tracker/kalman_filter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/MOT17-02-FRCNN/gt/gt2.txt" beforeDir="false" afterPath="$PROJECT_DIR$/data/MOT17-02-FRCNN/gt/gt2.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,8 +43,10 @@
     &quot;Python tests.Python tests for Unit_Test.TestTrackingAlgorithm.test_run_tracking_objects.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.Python tests for Unit_Test.TestTrackingAlgorithm.test_target_matching.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.Python tests for data_loader.test_data_loader.executor&quot;: &quot;Debug&quot;,
+    &quot;Python tests.Python tests for demo_tracking.test_tracking.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.Python tests in Unit_Test.py.executor&quot;: &quot;Run&quot;,
     &quot;Python tests.Python tests in data_loader.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in demo_tracking.py.executor&quot;: &quot;Run&quot;,
     &quot;Python.config.executor&quot;: &quot;Run&quot;,
     &quot;Python.main (1).executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
@@ -69,7 +66,7 @@
       <recent name="E:\python\MOT\UAV_MOT_LLM_Research\src" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python tests.Python tests in demo_tracking.py">
     <configuration name="config" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="UAV_MOT_LLM_Research" />
       <option name="ENV_FILES" value="" />
@@ -114,29 +111,6 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="tracking_algorithm" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="UAV_MOT_LLM_Research" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="SDK_NAME" value="D:\Anaconda3" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/tracking_algorithm.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
     <configuration name="Python tests for data_loader.test_data_loader" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="UAV_MOT_LLM_Research" />
       <option name="ENV_FILES" value="" />
@@ -152,7 +126,7 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="Python tests in Unit_Test.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+    <configuration name="Python tests for demo_tracking.test_tracking" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="UAV_MOT_LLM_Research" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -163,8 +137,8 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;$PROJECT_DIR$/src/test/Unit_Test.py&quot;" />
-      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <option name="_new_target" value="&quot;demo_tracking.test_tracking&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
     <configuration name="Python tests in data_loader.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
@@ -182,21 +156,36 @@
       <option name="_new_targetType" value="&quot;PATH&quot;" />
       <method v="2" />
     </configuration>
+    <configuration name="Python tests in demo_tracking.py" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="UAV_MOT_LLM_Research" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src/test" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/src/test/demo_tracking.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
     <list>
       <item itemvalue="Python.main" />
       <item itemvalue="Python.config" />
-      <item itemvalue="Python.tracking_algorithm" />
+      <item itemvalue="Python tests.Python tests for demo_tracking.test_tracking" />
+      <item itemvalue="Python tests.Python tests in demo_tracking.py" />
       <item itemvalue="Python tests.Python tests for data_loader.test_data_loader" />
       <item itemvalue="Python tests.Python tests in data_loader.py" />
-      <item itemvalue="Python tests.Python tests in Unit_Test.py" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python tests.Python tests in demo_tracking.py" />
+        <item itemvalue="Python tests.Python tests for demo_tracking.test_tracking" />
         <item itemvalue="Python.config" />
         <item itemvalue="Python tests.Python tests in data_loader.py" />
         <item itemvalue="Python tests.Python tests for data_loader.test_data_loader" />
-        <item itemvalue="Python.tracking_algorithm" />
-        <item itemvalue="Python tests.Python tests in Unit_Test.py" />
       </list>
     </recent_temporary>
   </component>
