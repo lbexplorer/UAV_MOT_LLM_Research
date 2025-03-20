@@ -42,20 +42,20 @@ class MOTEvaluator:
         :param pred_boxes: 预测结果数据，格式为 [(id, x1, y1, x2, y2), ...]
         """
         # 提取 ground truth 和预测结果的 ID 和边界框
-        gt_ids = [int(b[0]) for b in gt_boxes]
-        gt_bbox = [b[1:] for b in gt_boxes]
+        gt_ids = [int(b[0]) for b in gt_boxes]  # Ground truth ID 列表
+        gt_bbox = [b[1:] for b in gt_boxes]  # Ground truth 边界框列表
 
-        pred_ids = [int(b[0]) for b in pred_boxes]
-        pred_bbox = [b[1:] for b in pred_boxes]
+        pred_ids = [int(b[0]) for b in pred_boxes]  # 预测结果 ID 列表
+        pred_bbox = [b[1:] for b in pred_boxes]  # 预测结果边界框列表
 
         # 计算 IOU 距离矩阵（1 - IOU）
         dist_matrix = mm.distances.iou_matrix(gt_bbox, pred_bbox, max_iou=0.5)
 
         # 更新 MOT 数据累加器
         self.acc.update(
-            gt_ids,
-            pred_ids,
-            dist_matrix
+            gt_ids,  # Ground truth IDs
+            pred_ids,  # 预测结果 IDs
+            dist_matrix  # 距离矩阵
         )
 
         # 计算当前帧的指标
@@ -91,6 +91,7 @@ class MOTEvaluator:
         绘制性能趋势图。
         :param output_dir: 输出目录
         """
+        # 确保输出目录存在
         os.makedirs(output_dir, exist_ok=True)
 
         # 创建子图
