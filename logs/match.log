@@ -1,0 +1,47 @@
+2025-03-19 21:14:41,340 - DEBUG - 这是一条调试信息
+2025-03-19 21:14:41,340 - INFO - 这是一条信息级别的日志
+2025-03-19 21:14:41,340 - WARNING - 这是一条警告级别的日志
+2025-03-19 21:14:41,340 - ERROR - 这是一条错误级别的日志
+2025-03-19 21:14:41,340 - CRITICAL - 这是一条严重级别的日志
+2025-03-19 21:14:41,341 - INFO - Tracker initialized with base_threshold=0.5, confirm_frames=3, reserve_frames=3
+2025-03-19 21:14:41,341 - INFO - 
+========== Frame 0 Start ==========
+2025-03-19 21:14:41,341 - INFO - Created new confirmed target: ID=1, bbox=(100, 100, 150, 150)
+2025-03-19 21:14:41,341 - INFO - Tracker initialized with initial detections.
+2025-03-19 21:14:41,341 - INFO - ========== Frame 0 End ==========
+
+2025-03-19 21:14:41,342 - INFO - 
+========== Frame 1 Start ==========
+2025-03-19 21:14:41,343 - INFO - Processing new frame with 1 detections.
+2025-03-19 21:14:41,404 - DEBUG - Predicted target 1: new bbox=(100.0, 100.0, 150.0, 150.0)
+2025-03-19 21:14:41,405 - DEBUG - Cost matrix calculated: [[0.31932773]]
+2025-03-19 21:14:41,405 - DEBUG - Raw matches from Hungarian algorithm: rows=[0], cols=[0]
+2025-03-19 21:14:41,405 - DEBUG - Valid match: track_idx=0, det_idx=0, IOU=0.6806722689052751
+2025-03-19 21:14:41,405 - INFO - Valid matches after thresholding: [(0, 0)]
+2025-03-19 21:14:41,414 - INFO - Updated target 1: new bbox=(105, 95, 155, 145)
+2025-03-19 21:14:41,414 - DEBUG - Unmatched detections: []
+2025-03-19 21:14:41,414 - INFO - ========== Frame 1 End ==========
+
+2025-03-19 21:14:41,415 - INFO - 
+========== Frame 2 Start ==========
+2025-03-19 21:14:41,415 - INFO - Processing new frame with 0 detections.
+2025-03-19 21:14:41,415 - DEBUG - Predicted target 1: new bbox=(105.96153846153845, 94.03846153846155, 155.96153846153845, 144.03846153846155)
+2025-03-19 21:14:41,415 - DEBUG - Empty tracks or detections, returning zero cost matrix.
+2025-03-19 21:14:41,415 - DEBUG - Raw matches from Hungarian algorithm: rows=[], cols=[]
+2025-03-19 21:14:41,415 - INFO - Valid matches after thresholding: []
+2025-03-19 21:14:41,415 - INFO - Target 1 miss_count increased to 1
+2025-03-19 21:14:41,415 - DEBUG - Unmatched detections: []
+2025-03-19 21:14:41,416 - INFO - ========== Frame 2 End ==========
+
+2025-03-19 21:14:41,416 - INFO - 
+========== Frame 3 Start ==========
+2025-03-19 21:14:41,416 - INFO - Processing new frame with 1 detections.
+2025-03-19 21:14:41,416 - DEBUG - Predicted target 1: new bbox=(107.88461538461537, 92.11538461538463, 157.88461538461536, 142.11538461538464)
+2025-03-19 21:14:41,416 - DEBUG - Cost matrix calculated: [[0.15298023]]
+2025-03-19 21:14:41,417 - DEBUG - Raw matches from Hungarian algorithm: rows=[0], cols=[0]
+2025-03-19 21:14:41,417 - DEBUG - Valid match: track_idx=0, det_idx=0, IOU=0.8470197680264878
+2025-03-19 21:14:41,417 - INFO - Valid matches after thresholding: [(0, 0)]
+2025-03-19 21:14:41,417 - INFO - Updated target 1: new bbox=(110, 90, 160, 140)
+2025-03-19 21:14:41,417 - DEBUG - Unmatched detections: []
+2025-03-19 21:14:41,417 - INFO - ========== Frame 3 End ==========
+
