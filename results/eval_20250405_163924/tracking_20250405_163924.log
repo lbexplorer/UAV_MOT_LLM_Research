@@ -1,0 +1,105 @@
+2025-04-05 16:39:24,075 - INFO - Starting MOT evaluation with data from: E:\python\MOT\UAV_MOT_LLM_Research\data\MOT17-02-FRCNN\gt\gt2.txt
+2025-04-05 16:39:24,075 - INFO - ==================================================
+2025-04-05 16:39:24,075 - INFO - Tracker initialized with base_threshold=0.5, confirm_frames=3, reserve_frames=3
+2025-04-05 16:39:24,077 - INFO - Loading ground truth data from: E:\python\MOT\UAV_MOT_LLM_Research\data\MOT17-02-FRCNN\gt\gt2.txt
+2025-04-05 16:39:24,088 - INFO - Loaded 10 frames of ground truth data
+2025-04-05 16:39:24,088 - INFO - 
+========== Frame 1 Start ==========
+2025-04-05 16:39:24,089 - INFO - Created new confirmed target: ID=1, bbox=(500, 400, 580, 560)
+2025-04-05 16:39:24,089 - INFO - Created new confirmed target: ID=2, bbox=(550, 410, 640, 580)
+2025-04-05 16:39:24,089 - INFO - Created new confirmed target: ID=3, bbox=(600, 420, 685, 585)
+2025-04-05 16:39:24,089 - INFO - Tracker initialized with initial detections.
+2025-04-05 16:39:24,089 - INFO - ========== Frame 1 End ==========
+
+2025-04-05 16:39:24,096 - INFO - 
+========== Frame 2 Start ==========
+2025-04-05 16:39:24,096 - INFO - Processing new frame with 4 detections.
+2025-04-05 16:39:24,122 - INFO - Valid matches after thresholding: [(0, 0), (1, 1), (2, 2)]
+2025-04-05 16:39:24,124 - INFO - Updated target 1: new bbox=(505, 405, 585, 565)
+2025-04-05 16:39:24,124 - INFO - Updated target 2: new bbox=(555, 415, 645, 585)
+2025-04-05 16:39:24,125 - INFO - Updated target 3: new bbox=(605, 425, 690, 590)
+2025-04-05 16:39:24,125 - INFO - Created new pending target: bbox=(655, 435, 750, 610)
+2025-04-05 16:39:24,125 - INFO - Added new pending target: bbox=(655, 435, 750, 610)
+2025-04-05 16:39:24,125 - INFO - ========== Frame 2 End ==========
+
+2025-04-05 16:39:24,129 - INFO - 
+========== Frame 3 Start ==========
+2025-04-05 16:39:24,130 - INFO - Processing new frame with 3 detections.
+2025-04-05 16:39:24,130 - INFO - Valid matches after thresholding: [(0, 0), (1, 1), (2, 2)]
+2025-04-05 16:39:24,130 - INFO - Updated target 1: new bbox=(510, 410, 590, 570)
+2025-04-05 16:39:24,132 - INFO - Updated target 2: new bbox=(560, 420, 650, 590)
+2025-04-05 16:39:24,132 - INFO - Updated target 3: new bbox=(610, 430, 695, 595)
+2025-04-05 16:39:24,132 - INFO - ========== Frame 3 End ==========
+
+2025-04-05 16:39:24,136 - INFO - 
+========== Frame 4 Start ==========
+2025-04-05 16:39:24,136 - INFO - Processing new frame with 2 detections.
+2025-04-05 16:39:24,137 - INFO - Valid matches after thresholding: [(0, 0), (1, 1)]
+2025-04-05 16:39:24,137 - INFO - Updated target 1: new bbox=(515, 415, 595, 575)
+2025-04-05 16:39:24,137 - INFO - Updated target 2: new bbox=(565, 425, 655, 595)
+2025-04-05 16:39:24,137 - INFO - Target 3 miss_count increased to 1
+2025-04-05 16:39:24,137 - INFO - ========== Frame 4 End ==========
+
+2025-04-05 16:39:24,141 - INFO - 
+========== Frame 5 Start ==========
+2025-04-05 16:39:24,142 - INFO - Processing new frame with 3 detections.
+2025-04-05 16:39:24,142 - INFO - Valid matches after thresholding: [(0, 0), (1, 1), (2, 2)]
+2025-04-05 16:39:24,142 - INFO - Updated target 1: new bbox=(520, 420, 600, 580)
+2025-04-05 16:39:24,142 - INFO - Updated target 2: new bbox=(570, 430, 660, 600)
+2025-04-05 16:39:24,142 - INFO - Updated target 3: new bbox=(620, 440, 705, 605)
+2025-04-05 16:39:24,142 - INFO - ========== Frame 5 End ==========
+
+2025-04-05 16:39:24,147 - INFO - 
+========== Frame 6 Start ==========
+2025-04-05 16:39:24,147 - INFO - Processing new frame with 4 detections.
+2025-04-05 16:39:24,148 - INFO - Valid matches after thresholding: [(0, 0), (1, 1), (2, 2)]
+2025-04-05 16:39:24,148 - INFO - Updated target 1: new bbox=(525, 425, 605, 585)
+2025-04-05 16:39:24,148 - INFO - Updated target 2: new bbox=(575, 435, 665, 605)
+2025-04-05 16:39:24,149 - INFO - Updated target 3: new bbox=(625, 445, 710, 610)
+2025-04-05 16:39:24,149 - INFO - Created new pending target: bbox=(675, 455, 770, 630)
+2025-04-05 16:39:24,149 - INFO - Added new pending target: bbox=(675, 455, 770, 630)
+2025-04-05 16:39:24,149 - INFO - ========== Frame 6 End ==========
+
+2025-04-05 16:39:24,154 - INFO - 
+========== Frame 7 Start ==========
+2025-04-05 16:39:24,154 - INFO - Processing new frame with 2 detections.
+2025-04-05 16:39:24,154 - INFO - Valid matches after thresholding: [(0, 0), (1, 1)]
+2025-04-05 16:39:24,155 - INFO - Updated target 1: new bbox=(530, 430, 610, 590)
+2025-04-05 16:39:24,155 - INFO - Updated target 2: new bbox=(580, 440, 670, 610)
+2025-04-05 16:39:24,155 - INFO - Target 3 miss_count increased to 1
+2025-04-05 16:39:24,155 - INFO - ========== Frame 7 End ==========
+
+2025-04-05 16:39:24,159 - INFO - 
+========== Frame 8 Start ==========
+2025-04-05 16:39:24,159 - INFO - Processing new frame with 3 detections.
+2025-04-05 16:39:24,160 - INFO - Valid matches after thresholding: [(0, 0), (1, 1), (2, 2)]
+2025-04-05 16:39:24,160 - INFO - Updated target 1: new bbox=(535, 435, 615, 595)
+2025-04-05 16:39:24,160 - INFO - Updated target 2: new bbox=(585, 445, 675, 615)
+2025-04-05 16:39:24,160 - INFO - Updated target 3: new bbox=(635, 455, 720, 620)
+2025-04-05 16:39:24,160 - INFO - ========== Frame 8 End ==========
+
+2025-04-05 16:39:24,165 - INFO - 
+========== Frame 9 Start ==========
+2025-04-05 16:39:24,165 - INFO - Processing new frame with 3 detections.
+2025-04-05 16:39:24,166 - INFO - Valid matches after thresholding: [(0, 0), (1, 1), (2, 2)]
+2025-04-05 16:39:24,166 - INFO - Updated target 1: new bbox=(540, 440, 620, 600)
+2025-04-05 16:39:24,166 - INFO - Updated target 2: new bbox=(590, 450, 680, 620)
+2025-04-05 16:39:24,166 - INFO - Updated target 3: new bbox=(640, 460, 725, 625)
+2025-04-05 16:39:24,166 - INFO - ========== Frame 9 End ==========
+
+2025-04-05 16:39:24,170 - INFO - 
+========== Frame 10 Start ==========
+2025-04-05 16:39:24,170 - INFO - Processing new frame with 4 detections.
+2025-04-05 16:39:24,171 - INFO - Valid matches after thresholding: [(0, 0), (1, 1), (2, 2)]
+2025-04-05 16:39:24,171 - INFO - Updated target 1: new bbox=(545, 445, 625, 605)
+2025-04-05 16:39:24,171 - INFO - Updated target 2: new bbox=(595, 455, 685, 625)
+2025-04-05 16:39:24,171 - INFO - Updated target 3: new bbox=(645, 465, 730, 630)
+2025-04-05 16:39:24,171 - INFO - Created new pending target: bbox=(695, 475, 790, 650)
+2025-04-05 16:39:24,171 - INFO - Added new pending target: bbox=(695, 475, 790, 650)
+2025-04-05 16:39:24,171 - INFO - ========== Frame 10 End ==========
+
+2025-04-05 16:39:24,177 - INFO - Saving results to: results\eval_20250405_163924
+2025-04-05 16:39:24,177 - INFO - Generating performance trend plots...
+2025-04-05 16:39:25,799 - INFO - Saving evaluation report...
+2025-04-05 16:39:25,815 - ERROR - Error processing sequence: 'seaborn' is not a valid package style, path of style file, URL of style file, or library style name (library styles are listed in `style.available`)
+2025-04-05 16:39:25,815 - ERROR - Error in main process: 'seaborn' is not a valid package style, path of style file, URL of style file, or library style name (library styles are listed in `style.available`)

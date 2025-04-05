@@ -1,0 +1,14 @@
+Detailed MOT Metrics Report
+=========================
+
+Overall Metrics:
+---------------
+         IDF1   IDP   IDR  Rcll  Prcn GT MT PT ML FP FN IDs  FM  MOTA  MOTP IDt IDa IDm
+Overall 91.8% 93.3% 90.3% 90.3% 93.3%  4  3  0  1  2  3   0   0 83.9% 0.000   0   0   0
+Trend Analysis:
+--------------
+Average MOTA: 0.8633
+Average MOTP: 0.0000
+Total ID Switches: 0
+Average False Positives per Frame: 1.10
+Average False Negatives per Frame: 1.50

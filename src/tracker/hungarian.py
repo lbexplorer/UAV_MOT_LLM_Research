@@ -9,7 +9,7 @@ from typing import List, Tuple, Dict
 class HungarianTracker:
     """基于匈牙利算法的多目标跟踪器（支持IOU匹配）"""
 
-    def __init__(self, iou_threshold: float = 0.5, max_unmatched: int = 3):
+    def __init__(self, iou_threshold: float = 0.5, max_unmatch
         """
         初始化跟踪器
         :param iou_threshold: IOU匹配阈值，默认0.5

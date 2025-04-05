@@ -1,11 +1,8 @@
+from typing import Dict, Any, List
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Tuple
-import logging
-
-logger = logging.getLogger(__name__)
 
 class LLMInterface(ABC):
-    """LLM接口基类，定义与大语言模型交互的基本接口"""
+    """简化的LLM接口基类"""
     
     @abstractmethod
     def initialize(self) -> None:
@@ -13,20 +10,12 @@ class LLMInterface(ABC):
         pass
     
     @abstractmethod
-    def get_tracking_suggestion(self, 
-                              frame_context: Dict[str, Any],
-                              tracking_history: List[Dict],
-                              scene_info: Dict[str, Any]) -> Dict[str, Any]:
+    def get_completion(self, prompt: str) -> str:
         """
-        获取跟踪建议
+        获取LLM响应的基础方法
         
         Args:
-            frame_context: 当前帧上下文信息，包含：
-                - frame_id: 帧ID
-                - detections: 当前帧检测结果 [(x1,y1,x2,y2),...]
-                - traditional_result: 传统跟踪器结果
-            tracking_history: 历史跟踪信息列表
-            scene_info: 场景分析信息
+            prompt: 输入提示词
             
         Returns:
             Dict包含：

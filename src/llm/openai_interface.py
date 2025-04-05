@@ -1,20 +1,17 @@
-import openai
-from typing import Dict, List, Any, Tuple
-import json
+from typing import Dict, Any, List
 import logging
+from openai import OpenAI
+
+from llm.utils.response_parser import ResponseParser
 from .interface import LLMInterface
-from .prompts.tracking_prompts import (
-    TRACKING_PROMPT_TEMPLATE,
-    SCENE_ANALYSIS_PROMPT_TEMPLATE,
-    QUALITY_EVALUATION_PROMPT_TEMPLATE
-)
+from .utils.context_builder import ContextBuilder
 
 logger = logging.getLogger(__name__)
 
 class OpenAIInterface(LLMInterface):
-    """OpenAI API接口实现"""
+    """OpenAI接口实现"""
     
-    def __init__(self, api_key: str, model: str = "gpt-4"):
+    def __init__(self, api_key: str, model: str = "gpt-3.5-turbo"):
         """
         初始化OpenAI接口
         
@@ -24,121 +21,127 @@ class OpenAIInterface(LLMInterface):
         """
         self.api_key = api_key
         self.model = model
-        self.is_initialized = False
+        self.client = None
         
     def initialize(self) -> None:
         """初始化OpenAI客户端"""
-        openai.api_key = self.api_key
-        self.is_initialized = True
-        logger.info(f"OpenAI interface initialized with model: {self.model}")
-        
-    def _call_api(self, messages: List[Dict[str, str]]) -> str:
+        try:
+            self.client = OpenAI(api_key=self.api_key)
+            logger.info(f"OpenAI interface initialized with model: {self.model}")
+        except Exception as e:
+            logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+            raise
+            
+    def get_completion(self, prompt: str) -> str:
         """
-        调用OpenAI API
+        获取LLM响应
         
         Args:
-            messages: 消息列表，包含system和user消息
+            prompt: 输入提示词
             
         Returns:
-            API响应的文本内容
+            LLM的响应文本
         """
-        if not self.is_initialized:
+        if not self.client:
             raise RuntimeError("OpenAI interface not initialized. Call initialize() first.")
             
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
-                messages=messages
+                messages=[
+                    {"role": "system", "content": "你是一个多目标跟踪专家系统，专门负责分析和优化跟踪结果。"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
             )
             return response.choices[0].message.content
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
             raise
             
-    def get_tracking_suggestion(self,
-                              frame_context: Dict[str, Any],
-                              tracking_history: List[Dict],
-                              scene_info: Dict[str, Any]) -> Dict[str, Any]:
-        """获取跟踪建议"""
-        # 构建提示词
-        prompt = TRACKING_PROMPT_TEMPLATE.format(
-            frame_id=frame_context['frame_id'],
-            detections=frame_context['detections'],
-            traditional_result=frame_context['traditional_result'],
-            tracking_history=json.dumps(tracking_history[-5:], indent=2),  # 只使用最近5帧历史
-            scene_info=json.dumps(scene_info, indent=2)
-        )
+    def analyze_scene(self, frame_data: Dict[str, Any], scene_history: List[Dict]) -> Dict[str, Any]:
+        """
+        场景分析
         
-        messages = [
-            {"role": "system", "content": "你是一个多目标跟踪专家系统，专门负责分析和优化跟踪结果。"},
-            {"role": "user", "content": prompt}
-        ]
-        
-        try:
-            response = self._call_api(messages)
-            result = json.loads(response)
-            logger.debug(f"Tracking suggestion generated: {result}")
-            return result
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing LLM response: {str(e)}")
-            return {
-                "id_associations": [],
-                "confidence_scores": {},
-                "risk_assessment": {"level": "unknown", "details": "Error parsing response"},
-                "suggested_corrections": []
-            }
+        Args:
+            frame_data: 当前帧数据
+            scene_history: 历史场景信息
             
-    def analyze_scene(self,
-                     frame_data: Dict[str, Any],
-                     scene_history: List[Dict]) -> Dict[str, Any]:
-        """场景分析"""
-        prompt = SCENE_ANALYSIS_PROMPT_TEMPLATE.format(
-            frame_data=json.dumps(frame_data, indent=2),
-            scene_history=json.dumps(scene_history[-5:], indent=2)
-        )
-        
-        messages = [
-            {"role": "system", "content": "你是一个场景分析专家，负责理解和分析多目标跟踪场景。"},
-            {"role": "user", "content": prompt}
-        ]
-        
+        Returns:
+            场景分析结果
+        """
         try:
-            response = self._call_api(messages)
-            result = json.loads(response)
-            logger.debug(f"Scene analysis completed: {result}")
-            return result
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing scene analysis response: {str(e)}")
-            return {
-                "scene_type": "unknown",
-                "complexity": 0.0,
-                "risk_areas": [],
-                "interaction_patterns": []
-            }
+            # 使用ContextBuilder构建场景上下文
+            current_frame = ContextBuilder.build_frame_context(
+                frame_id=frame_data.get("frame_id"),
+                detections=frame_data.get("detections", []),
+                traditional_result=frame_data.get("traditional_result", {})
+            )
             
-    def evaluate_tracking_quality(self,
-                                tracking_result: Dict[str, Any],
+            scene_context = ContextBuilder.build_scene_context(
+                current_frame=current_frame,
+                history=scene_history
+            )
+            
+            # 构建提示词
+            prompt = f"""
+            请分析以下场景数据并提供详细分析：
+            
+            当前场景信息：
+            - 检测目标数量：{scene_context['current_state']['statistics']['num_detections']}
+            - 跟踪目标数量：{scene_context['current_state']['statistics']['num_tracks']}
+            - 运动模式：{scene_context['motion_patterns']}
+            - 密度分布：{scene_context['density_map']}
+            - 交互区域：{scene_context['interaction_zones']}
+            
+            请提供以下分析结果（JSON格式）：
+            1. scene_type: 场景类型（拥挤、稀疏、正常等）
+            2. complexity: 场景复杂度评分（0-1）
+            3. risk_areas: 风险区域列表
+            4. interaction_patterns: 目标交互模式列表
+            """
+            
+            response = self.get_completion(prompt)
+            return ResponseParser.parse_scene_analysis(response)
+            
+        except Exception as e:
+            logger.error(f"Scene analysis failed: {str(e)}")
+            return ResponseParser._get_default_scene_analysis()
+            
+    def evaluate_tracking_quality(self, tracking_result: Dict[str, Any], 
                                 frame_context: Dict[str, Any]) -> Dict[str, float]:
-        """评估跟踪质量"""
-        prompt = QUALITY_EVALUATION_PROMPT_TEMPLATE.format(
-            tracking_result=json.dumps(tracking_result, indent=2),
-            frame_context=json.dumps(frame_context, indent=2)
-        )
+        """
+        评估跟踪质量
         
-        messages = [
-            {"role": "system", "content": "你是一个跟踪质量评估专家，负责评估多目标跟踪的性能。"},
-            {"role": "user", "content": prompt}
-        ]
-        
+        Args:
+            tracking_result: 跟踪结果
+            frame_context: 当前帧上下文
+            
+        Returns:
+            质量评估结果
+        """
         try:
-            response = self._call_api(messages)
-            result = json.loads(response)
-            logger.debug(f"Quality evaluation completed: {result}")
-            return result
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing quality evaluation response: {str(e)}")
-            return {
-                "overall_quality": 0.0,
-                "id_stability": 0.0,
-                "position_accuracy": 0.0
-            } 
+            # 构建提示词
+            prompt = f"""
+            请评估以下跟踪结果的质量：
+            
+            跟踪结果：
+            - 跟踪目标数量：{len(tracking_result.get('tracks', []))}
+            - 目标详情：{tracking_result.get('tracks', [])}
+            
+            当前帧信息：
+            - 检测目标数量：{len(frame_context.get('detections', []))}
+            - 场景密度：{frame_context.get('density', 0)}
+            
+            请提供以下评分（JSON格式，分数范围0-1）：
+            1. overall_quality: 整体跟踪质量
+            2. id_stability: ID稳定性评分
+            3. position_accuracy: 位置准确度评分
+            """
+            
+            response = self.get_completion(prompt)
+            return ResponseParser.parse_quality_evaluation(response)
+            
+        except Exception as e:
+            logger.error(f"Quality evaluation failed: {str(e)}")
+            return ResponseParser._get_default_quality_evaluation() 

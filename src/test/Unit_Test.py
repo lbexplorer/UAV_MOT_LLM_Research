@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from unittest.mock import MagicMock
 
-from src.tracking_algorithm import ExtendedKalmanFilter, Target, ObjectTracker, calculate_mahalanobis_distance, \
+from tracking_algorithm import ExtendedKalmanFilter, Target, ObjectTracker, calculate_mahalanobis_distance, \
     run_tracking_objects
 
 
