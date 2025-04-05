@@ -4920,3 +4920,14 @@ Results have been saved to: results
 2025-04-05 17:05:34,777 - DEBUG - platform is win32
 2025-04-05 17:05:34,826 - DEBUG - CACHEDIR=C:\Users\ASUS\.matplotlib
 2025-04-05 17:05:34,829 - DEBUG - Using fontManager instance from C:\Users\ASUS\.matplotlib\fontlist-v390.json
+2025-04-05 17:58:52,653 - DEBUG - 这是一条调试信息
+2025-04-05 17:58:52,654 - INFO - 这是一条信息级别的日志
+2025-04-05 17:58:52,654 - WARNING - 这是一条警告级别的日志
+2025-04-05 17:58:52,654 - ERROR - 这是一条错误级别的日志
+2025-04-05 17:58:52,655 - CRITICAL - 这是一条严重级别的日志
+2025-04-05 17:58:52,868 - DEBUG - matplotlib data path: D:\Anaconda3\Lib\site-packages\matplotlib\mpl-data
+2025-04-05 17:58:52,873 - DEBUG - CONFIGDIR=C:\Users\ASUS\.matplotlib
+2025-04-05 17:58:52,874 - DEBUG - interactive is False
+2025-04-05 17:58:52,874 - DEBUG - platform is win32
+2025-04-05 17:58:52,927 - DEBUG - CACHEDIR=C:\Users\ASUS\.matplotlib
+2025-04-05 17:58:52,930 - DEBUG - Using fontManager instance from C:\Users\ASUS\.matplotlib\fontlist-v390.json

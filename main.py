@@ -2,6 +2,7 @@
 
 import logging
 import os
+import pandas as pd
 from datetime import datetime
 from src.tracker.enhanced_hungarian import EnhancedHungarianTracker
 from src.eval.metrics import MOTEvaluator
@@ -48,14 +49,52 @@ def create_results_dir() -> str:
     os.makedirs(results_dir, exist_ok=True)
     return results_dir
 
-def process_mot_sequence(gt_path: str, results_dir: str, logger: logging.Logger) -> dict:
+def load_detections(det_path: str, logger: logging.Logger) -> dict:
+    """
+    加载检测器结果
+    :param det_path: 检测结果文件路径
+    :param logger: 日志记录器
+    :return: 按帧组织的检测结果字典
+    """
+    try:
+        # 读取检测结果文件
+        det_data = pd.read_csv(
+            det_path,
+            sep=',',
+            header=None,
+            names=['frame', 'id', 'x', 'y', 'w', 'h', 'score', 'class', 'visibility']
+        )
+        
+        # 按帧组织检测结果
+        det_frames = {}
+        for frame_id, frame_data in det_data.groupby('frame'):
+            # 转换为边界框格式 (x1, y1, x2, y2)
+            detections = []
+            for _, det in frame_data.iterrows():
+                x1, y1 = det['x'], det['y']
+                x2, y2 = x1 + det['w'], y1 + det['h']
+                detections.append((x1, y1, x2, y2))
+            det_frames[frame_id] = detections
+            
+        logger.info(f"Loaded {len(det_frames)} frames of detection data")
+        return det_frames
+    
+    except Exception as e:
+        logger.error(f"Error loading detection data: {e}")
+        raise
+
+def process_mot_sequence(sequence_path: str, results_dir: str, logger: logging.Logger) -> dict:
     """
     处理MOT序列数据
-    :param gt_path: ground truth数据路径
+    :param sequence_path: MOT序列根目录路径
     :param results_dir: 结果保存目录
     :param logger: 日志记录器
     :return: 评估结果
     """
+    # 构建相关路径
+    gt_path = os.path.join(sequence_path, 'gt', 'gt.txt')
+    det_path = os.path.join(sequence_path, 'det', 'det.txt')
+    
     # 初始化模块
     tracker = EnhancedHungarianTracker()
     evaluator = MOTEvaluator()
@@ -68,19 +107,27 @@ def process_mot_sequence(gt_path: str, results_dir: str, logger: logging.Logger)
         gt_frames = data_loader.load_gt()
         logger.info(f"Loaded {len(gt_frames)} frames of ground truth data")
         
+        # 加载检测器结果
+        logger.info(f"Loading detection data from: {det_path}")
+        det_frames = load_detections(det_path, logger)
+        
+        # 确保GT和检测结果的帧ID一致
+        frame_ids = sorted(set(gt_frames.keys()) & set(det_frames.keys()))
+        logger.info(f"Processing {len(frame_ids)} common frames")
+        
         # 处理每一帧
-        for frame_id in sorted(gt_frames.keys()):
+        for frame_id in frame_ids:
             # 准备ground truth数据
             frame_gt = gt_frames[frame_id]
             gt_boxes = []
-            det_boxes = []
             
-            # 转换数据格式
+            # 转换GT数据格式
             for obj in frame_gt:
                 bbox = data_loader.det_to_bbox(obj)
                 gt_boxes.append((obj['id'], *bbox))
-                # 直接使用GT边界框作为检测结果
-                det_boxes.append(bbox)
+            
+            # 获取检测结果
+            det_boxes = det_frames[frame_id]
             
             # 运行跟踪算法
             track_result = tracker.update(frame_id, det_boxes)
@@ -92,7 +139,7 @@ def process_mot_sequence(gt_path: str, results_dir: str, logger: logging.Logger)
             evaluator.update(gt_boxes, pred_boxes)
             
             # 打印进度
-            if frame_id % 100 == 0:  # 每100帧打印一次进度
+            if frame_id % 100 == 0:
                 logger.info(f"Frame {frame_id} processed. "
                           f"Ground truth: {len(gt_boxes)}, "
                           f"Detections: {len(det_boxes)}, "
@@ -166,22 +213,22 @@ def plot_detailed_trends(metrics_history: dict, output_dir: str):
     plt.savefig(os.path.join(output_dir, 'detailed_performance_trends.png'), dpi=300, bbox_inches='tight')
     plt.close()
 
-def main(gt_path: str):
+def main(sequence_path: str):
     """
     主函数
-    :param gt_path: ground truth数据路径
+    :param sequence_path: MOT序列根目录路径
     """
     # 创建结果目录
     results_dir = create_results_dir()
     
     # 设置日志
     logger = setup_logger(results_dir)
-    logger.info(f"Starting MOT evaluation with data from: {gt_path}")
+    logger.info(f"Starting MOT evaluation with sequence: {sequence_path}")
     logger.info("=" * 50)
     
     try:
         # 处理序列
-        results = process_mot_sequence(gt_path, results_dir, logger)
+        results = process_mot_sequence(sequence_path, results_dir, logger)
         
         # 打印评估结果
         logger.info("\nEvaluation Results:")
@@ -204,6 +251,6 @@ def main(gt_path: str):
         raise
 
 if __name__ == "__main__":
-    # 示例用法
-    gt_path = r"E:\python\MOT\UAV_MOT_LLM_Research\data\MOT17-02-FRCNN\gt\gt.txt"
-    main(gt_path)
+    # 使用完整的序列路径
+    sequence_path = r"E:\python\MOT\UAV_MOT_LLM_Research\data\MOT17-02-FRCNN"
+    main(sequence_path)
